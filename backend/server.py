@@ -24,12 +24,9 @@ async def getData(request):
         x = radius * math.cos(ls) * math.cos(lon)
         y = radius * math.cos(ls) * math.sin(lon)
         z = radius * math.sin(ls)
-        resp_obj = {"country": obj["country"],
-                    "city": obj["city"],
-                    "ip": obj["query"]}
-        resp_obj["cartesian"] = [x,y,z]
+        resp_obj = {"country": obj["country"], "city": obj["city"], "ip": obj["query"], "cartesian": [x, y, z]}
         resp_arr.append(resp_obj)
-    return web.json_response(resp_arr,headers={"Access-Control-Allow-Origin":CLIENT_URL})
+    return web.json_response(resp_arr, headers={"Access-Control-Allow-Origin": CLIENT_URL})
 
 app = web.Application()
 app.add_routes(routes)

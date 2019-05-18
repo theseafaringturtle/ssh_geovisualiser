@@ -11,7 +11,7 @@ loc_data_queue = deque([],Q_SIZE)
 
 def fetchLocData(ip_list):
     api_url = 'http://ip-api.com/batch?fields=query,city,country,lat,lon'
-    json_arr = json.dumps([ {"query": ip} for ip in ip_list])
+    json_arr = json.dumps([{"query": ip} for ip in ip_list])
     print(json_arr)
     res = requests.post(api_url, timeout=7, data=json_arr)
     print(res.status_code)
@@ -25,7 +25,7 @@ def getIPs():
     while True:
         sleep(1)
         ip_set = set()
-        #print(ip_queue.count())
+        # print(ip_queue.count())
         for i in range(5):
             if len(ip_queue) > 0:#check if it has items
                 ip_set.add(ip_queue.pop())
