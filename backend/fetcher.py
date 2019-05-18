@@ -19,7 +19,9 @@ def fetchLocData(ip_list):
         json_res_arr = res.json()
         for obj in json_res_arr:
             print(obj)
-            loc_data_queue.append(obj)
+            # convert to tuple for set hashing
+            loc_tuple = (obj["query"], obj["city"], obj["country"], obj["lon"], obj["lat"])
+            loc_data_queue.append(loc_tuple)
 
 def getIPs():
     while True:
