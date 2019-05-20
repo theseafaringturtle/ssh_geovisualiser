@@ -12,6 +12,10 @@ export default class GlobeScene {
   isLargeScreen(){
     return window.innerWidth > 900;
   }
+  setCameraTarget(cor){
+    // if(this.scene)
+    //   this.scene.activeCamera.focusOn(new BABYLON.Vector3(cor[0],cor[2],cor[1]));
+  }
 
   onSceneMount = (e) => {
     const {canvas, scene, engine} = e;
@@ -29,7 +33,6 @@ export default class GlobeScene {
     camera.radius = 150;
     camera.attachControl(canvas);
 
-    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
     let light = new BABYLON.DirectionalLight("DirectionalLight", new BABYLON.Vector3(-1, 0, 0), scene);
     light.specular = new BABYLON.Color3(0.05, 0.2, 0.4);
     // light.intensity = 0.7;
@@ -52,7 +55,7 @@ export default class GlobeScene {
     let advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
     this.info = Button.CreateSimpleButton("but", "Click Me");
     this.info.width = this.isLargeScreen() ? 0.25 : 0.35;
-    this.info.height = this.isLargeScreen() ?"60px" : "80px";
+    this.info.height = this.isLargeScreen() ? "65px" : "80px";
     this.info.color = "red";
     this.info.background = "yellow";
     this.info.isVisible = false;

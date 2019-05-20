@@ -2,14 +2,17 @@ import * as React from 'react';
 import {BACKEND_URL, EARTH_RADIUS, UPDATE_TIME} from "../config";
 import '../App.css';
 import GlobeScene from "./3D/GlobeScene";
-import BabylonScene from './SceneComponent'; // import the component above linking to file we just created.
+import DataList from "./DataList";
+import BabylonScene from './SceneComponent';
+import {Container, Row, Col} from "reactstrap"
 
 
 export default class Visualisation extends React.Component {
 
-  constructor(props){
+  constructor(props) {
     super(props);
     this.scene = new GlobeScene();
+    this.dataListRef = React.createRef();
     this.fetchData();
     setInterval(this.fetchData, UPDATE_TIME);
   }
@@ -20,18 +23,31 @@ export default class Visualisation extends React.Component {
         return resp.json();
       }
     ).then(jsonRes => {
-        console.log(jsonRes);
-        //todo remove duplicates
-        this.scene.displayData(jsonRes);
-        //todo add to list panel on the side
-      }).catch(error => console.error(error));
+      console.log(jsonRes);
+      this.scene.displayData(jsonRes);
+      this.dataListRef.current.setState({data: jsonRes});
+      this.setCameraTarget(jsonRes[0].cartesian)
+    }).catch(error => console.error(error));
   };
+
+  setCameraTarget(coords){
+    // this.scene.setCameraTarget(coords);
+  }
 
   render() {
     return (
-      <div className="globeContainer">
-        <BabylonScene onSceneMount={this.scene.onSceneMount}/>
-      </div>
+    <div style={{verticalAlign: "top"}}>
+      {/*<Container style={{width: "100vw", height: "100vh"}}>*/}
+      {/*<Row xs={12}>*/}
+      {/*<Col xs={6}>*/}
+      {/*<div style={{backgroundColor : "red", height: "100vh"}}/>*/}
+      {/*</Col>*/}
+      {/*</Row>*/}
+      <div id="globeContainer">
+        <BabylonScene onSceneMount={this.scene.onSceneMount} />
+    </div>
+      <DataList id="dataList" itemSelected={this.setCameraTarget} ref={this.dataListRef} />
+    </div>
     )
   }
 }

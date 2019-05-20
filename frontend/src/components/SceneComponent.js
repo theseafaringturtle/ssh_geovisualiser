@@ -59,7 +59,6 @@ export default class Scene extends React.Component {
       <canvas
         id="renderCanvas"
         {...opts}
-        touch-action="none"
         ref={this.onCanvasLoaded}
       />
     )

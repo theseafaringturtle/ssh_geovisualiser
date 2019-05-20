@@ -6,8 +6,7 @@ export function createBorders(scene) {
   borderSphere.position = new BABYLON.Vector3(0, 0, 0);
   let bordersMaterial = new BABYLON.StandardMaterial("bordermat", scene);
   bordersMaterial.diffuseTexture = new BABYLON.Texture('assets/earth_borders.png', scene);
-  bordersMaterial.diffuseTexture.vScale = -1;
-  bordersMaterial.diffuseTexture.uScale = -1;
+  invertTexture(bordersMaterial.diffuseTexture);
   bordersMaterial.diffuseTexture.hasAlpha = true;
   bordersMaterial.emissiveColor = new BABYLON.Color3(1, 1, 1);
   borderSphere.material = bordersMaterial;
@@ -22,19 +21,22 @@ export function createEarth(scene){
 
   let earthMaterial = new BABYLON.StandardMaterial("earth", scene);
   earthMaterial.diffuseTexture = new BABYLON.Texture('assets/earth_day.jpg', scene);
-  earthMaterial.diffuseTexture.vScale = -1;
-  earthMaterial.diffuseTexture.uScale = -1;
+  invertTexture(earthMaterial.diffuseTexture);
   earthMaterial.bumpTexture = new BABYLON.Texture('assets/earth_normal.png', scene);
-  earthMaterial.bumpTexture.vScale = -1;
-  earthMaterial.bumpTexture.uScale = -1;
+  invertTexture(earthMaterial.bumpTexture);
   earthMaterial.specularTexture = new BABYLON.Texture('assets/earth_spec.png', scene);
-  earthMaterial.specularTexture.vScale = -1;
-  earthMaterial.specularTexture.uScale = -1;
+  invertTexture(earthMaterial.specularTexture);
   earthMaterial.ambientColor = new BABYLON.Color3(1, 1, 1);
   earthMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
   earthMaterial.emissiveColor = new BABYLON.Color3(0.7, 0.7, 0.8);
   sphere.material = earthMaterial;
   return sphere;
+}
+
+function invertTexture(texture){
+  texture.vScale = -1;
+  texture.uScale = -1;
+  texture.vOffset = -0.003;
 }
 
 export function createFire(coordinates, scene){

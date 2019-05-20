@@ -13,7 +13,10 @@ def fetchLocData(ip_list):
     api_url = 'http://ip-api.com/batch?fields=query,city,country,lat,lon'
     json_arr = json.dumps([{"query": ip} for ip in ip_list])
     print(json_arr)
-    res = requests.post(api_url, timeout=7, data=json_arr)
+    try:
+        res = requests.post(api_url, timeout=7, data=json_arr)
+    except Exception as ex:
+        print(ex)
     print(res.status_code)
     if res.status_code == requests.codes.ok:
         json_res_arr = res.json()
