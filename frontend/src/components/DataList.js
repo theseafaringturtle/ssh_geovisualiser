@@ -10,13 +10,13 @@ export default class DataList extends React.Component {
   render() {
     return (
       <div id="dataList">
-        {this.state.data.map(el => {
+        {this.state.data.map((el, ind) => {
           return (
-              <Card key={el.ip} className="dataCard">
+              <Card key={ind} className="dataCard">
                 <CardBody className="dataCardBody">
                   <CardTitle>{el.ip} </CardTitle>
                   <CardText className="detailText" >{el.city}, &nbsp; {el.country} &nbsp;</CardText>
-                  <Button onClick={this.props.itemSelected} style={{float: "left"}}>View</Button>
+                  <Button onClick={() => {return this.props.itemSelected(ind)}} style={{float: "left"}}>View</Button>
                 </CardBody>
               {/*<p className="detailText">{el.country}</p> &nbsp;*/}
               {/*<p className="detailText">{el.city}</p> &nbsp;*/}

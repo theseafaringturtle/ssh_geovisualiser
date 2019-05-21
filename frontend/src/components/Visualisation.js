@@ -26,13 +26,14 @@ export default class Visualisation extends React.Component {
       console.log(jsonRes);
       this.scene.displayData(jsonRes);
       this.dataListRef.current.setState({data: jsonRes});
-      this.setCameraTarget(jsonRes[0].cartesian)
+      // this.setCameraTarget(0);
     }).catch(error => console.error(error));
   };
 
-  setCameraTarget(coords){
-    // this.scene.setCameraTarget(coords);
-  }
+  setCameraTarget = (index) => {
+    if(this.scene)
+      this.scene.setCameraTarget(index);
+  };
 
   render() {
     return (

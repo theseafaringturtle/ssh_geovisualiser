@@ -12,9 +12,12 @@ export default class GlobeScene {
   isLargeScreen(){
     return window.innerWidth > 900;
   }
-  setCameraTarget(cor){
-    // if(this.scene)
-    //   this.scene.activeCamera.focusOn(new BABYLON.Vector3(cor[0],cor[2],cor[1]));
+  setCameraTarget(index){
+    if(this.scene) {
+      this.flares[index].showInfo();
+      //no need to subtract the earth's position since it is at the origin
+      this.scene.targetCameraPosition = this.flares[index].position.scale(1);
+    }
   }
 
   onSceneMount = (e) => {
@@ -54,7 +57,7 @@ export default class GlobeScene {
 
     let advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
     this.info = Button.CreateSimpleButton("but", "Click Me");
-    this.info.width = this.isLargeScreen() ? 0.25 : 0.35;
+    this.info.width = this.isLargeScreen() ? 0.25 : 0.4;
     this.info.height = this.isLargeScreen() ? "65px" : "80px";
     this.info.color = "red";
     this.info.background = "yellow";
@@ -62,6 +65,17 @@ export default class GlobeScene {
     this.info.linkOffsetX = 80;
     this.info.linkOffsetY = -50;
     advancedTexture.addControl(this.info);
+
+    scene.targetCameraPosition = null;
+    scene.registerBeforeRender(function () {
+      animateCameraToTarget(scene);
+    });
+
+    borderSphere.actionManager = new BABYLON.ActionManager(scene);
+    borderSphere.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (ev) => {
+        this.info.isVisible = false;
+      }));
 
     this.scene = scene;
     engine.runRenderLoop(() => {
@@ -92,19 +106,19 @@ export default class GlobeScene {
       this.flares.push(flare);
       flare.hovering = false;
       flare.actionManager = new BABYLON.ActionManager(this.scene);
+      flare.showInfo = () => {
+        this.info.isVisible = 1;
+        this.info.linkWithMesh(flare);
+        this.info.textBlock.text = `${jsonObj.ip}\n${jsonObj.city}\n${jsonObj.country}`;
+      };
       flare.actionManager.registerAction(
         new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, (ev) => {
           flare.hovering = true;
-          this.info.isVisible = 1;
-          this.info.linkWithMesh(flare);
-          this.info.textBlock.text = `${jsonObj.ip}\n${jsonObj.city}\n${jsonObj.country}`;
+          flare.showInfo();
         }));
       flare.actionManager.registerAction(
         new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (ev) => {
-          this.info.isVisible = 1;
-          //todo fade timeout
-          this.info.linkWithMesh(flare);
-          this.info.textBlock.text = `${jsonObj.ip}\n${jsonObj.city}\n${jsonObj.country}`;
+          flare.showInfo();
         }));
       flare.actionManager.registerAction(
         new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger, (ev) => {
@@ -112,5 +126,23 @@ export default class GlobeScene {
           this.info.isVisible = false;
         }));
     });
+  }
+}
+
+// adapted from http://www.html5gamedevs.com/topic/19683-convert-position-to-alpha-beta-for-arcrotatecamera/
+// now radius independent
+function animateCameraToTarget(scene) {
+  if (scene.targetCameraPosition && scene.activeCamera) {
+    let direction = scene.targetCameraPosition.subtract(scene.activeCamera.position);
+    // let distance = direction.length();
+    let angle =BABYLON.Vector3.GetAngleBetweenVectors(scene.targetCameraPosition, scene.activeCamera.position, BABYLON.Vector3.Zero());
+    if (Math.abs(angle) > 0.1) {
+      // set new camera - move camera in small steps based on the direction vector
+      scene.activeCamera.setPosition(scene.activeCamera.position.add(direction.normalize().scale(2)));
+      // scene.activeCamera.radius = 100;
+    } else {
+      // target position reached
+      scene.targetCameraPosition = null;
+    }
   }
 }
