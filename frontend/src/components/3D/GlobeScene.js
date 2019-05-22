@@ -34,6 +34,9 @@ export default class GlobeScene {
     camera.lowerRadiusLimit = this.isLargeScreen() ? 105 : 80;
     camera.upperRadiusLimit = 180;
     camera.radius = 150;
+    camera.pinchPrecision = this.isLargeScreen() ? 12 : 20;
+    camera.angularSensibilityX = this.isLargeScreen() ? 1000 : 2400;
+    camera.angularSensibilityX = this.isLargeScreen() ? 1000 : 2450;
     camera.attachControl(canvas);
 
     let light = new BABYLON.DirectionalLight("DirectionalLight", new BABYLON.Vector3(-1, 0, 0), scene);
