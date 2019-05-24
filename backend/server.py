@@ -2,10 +2,11 @@ import threading
 import math
 import sys
 from aiohttp import web
-from fetcher import getIPs, loc_data_queue
+from fetcher import getIPs
+from shared import location_dict
 from reader import readFile
 
-CLIENT_URL=sys.argv[1]
+CLIENT_URL = sys.argv[1]
 
 routes = web.RouteTableDef()
 
@@ -14,10 +15,9 @@ async def getData(request):
     radius = 55.0
     if "radius" in request.rel_url.query:
         radius = float(request.rel_url.query['radius'])
-    data = set(loc_data_queue)  # remove duplicates
     resp_arr = []
-    for obj in data:
-        query, city, country, lon, lat = obj
+    for ip_key in location_dict:
+        num_conn, city, country, lon, lat = location_dict[ip_key]
         lon = float(lon) * math.pi / 180
         lat = float(lat) * math.pi / 180
         f = 0
@@ -25,7 +25,7 @@ async def getData(request):
         x = radius * math.cos(ls) * math.cos(lon)
         y = radius * math.cos(ls) * math.sin(lon)
         z = radius * math.sin(ls)
-        resp_obj = {"country": country, "city": city, "ip": query, "cartesian": [x, y, z]}
+        resp_obj = {"count": num_conn, "country": country, "city": city, "ip": ip_key, "cartesian": [x, y, z]}
         resp_arr.append(resp_obj)
     return web.json_response(resp_arr, headers={"Access-Control-Allow-Origin": CLIENT_URL})
 
