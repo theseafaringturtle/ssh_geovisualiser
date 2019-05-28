@@ -1,40 +1,42 @@
 import requests
 import json
-import sys
-from time import sleep
-from collections import deque
-from reader import ip_queue
+import math
+from data import ip_lock
 
-Q_SIZE=int(sys.argv[3])
 
-loc_data_queue = deque([],Q_SIZE)
-
-def fetchLocData(ip_list):
+def fetch_loc_data(ip_set):
     api_url = 'http://ip-api.com/batch?fields=query,city,country,lat,lon'
-    json_arr = json.dumps([{"query": ip} for ip in ip_list])
-    print(json_arr)
+    ip_lock.acquire()
+    json_arr = json.dumps([{"query": ip, "fields": "query,city,country,lon,lat,proxy"} for ip in ip_set])
+    ip_set.clear()
+    ip_lock.release()
+    # print(json_arr)
     try:
         res = requests.post(api_url, timeout=7, data=json_arr)
     except Exception as ex:
         print(ex)
     print(res.status_code)
-    if res.status_code == requests.codes.ok:
-        json_res_arr = res.json()
-        for obj in json_res_arr:
-            print(obj)
-            # convert to tuple for set hashing
-            loc_tuple = (obj["query"], obj["city"], obj["country"], obj["lon"], obj["lat"])
-            loc_data_queue.append(loc_tuple)
+    return res
 
-def getIPs():
-    while True:
-        sleep(1)
-        ip_set = set()
-        # print(ip_queue.count())
-        for i in range(5):
-            if len(ip_queue) > 0:#check if it has items
-                ip_set.add(ip_queue.pop())
-        if len(ip_set) > 0:
-            fetchLocData(list(ip_set))
 
+def store_loc_data(res, location_data):
+    json_res_arr = res.json()
+    for obj in json_res_arr:
+        print(obj)
+        ip = obj["query"]
+        norm_cart = getNormCartesianForSpherical(float(obj["lon"]), float(obj["lat"]))
+        loc_info = (obj["city"], obj["country"], obj["proxy"], norm_cart)
+        location_data[ip] = loc_info
+
+
+'''Get normalised coordinates - later multiply values by radius'''
+def getNormCartesianForSpherical(lon, lat):
+    lon = lon * math.pi / 180
+    lat = lat * math.pi / 180
+    f = 0
+    ls = math.atan((1 - f) ** 2 * math.tan(lat))
+    x = math.cos(ls) * math.cos(lon)
+    y = math.cos(ls) * math.sin(lon)
+    z = math.sin(ls)
+    return (x,y,z)
 
