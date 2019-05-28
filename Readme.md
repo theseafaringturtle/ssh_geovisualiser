@@ -1,6 +1,6 @@
 # SSH GeoVisualiser
 
-A visualisation of failed SSH password login attempts from all over the world.
+A visualisation of SSH connections
 
 Built with BabylonJS, React and Python, using ip-api.com for geolocation.
 
