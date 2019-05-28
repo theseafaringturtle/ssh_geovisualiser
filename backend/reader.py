@@ -1,54 +1,74 @@
-import re
+from time import sleep
 import sys
-from shared import ip_query_dict, location_dict
+from fetcher import fetch_loc_data, store_loc_data
+from data import location_data, ip_set, sessions, sessions_lock, ip_lock
+import os
+import signal
 
+is_running = True
 
-waiting_sessions = {}  # user, ip[]
-active_sessions = {}  # num, ip
+def stop_threads():
+    # global is_running
+    # is_running = False
+    # needed to terminate stdin.readline(), otherwise user would have to enter a newline
+    pid = os.getpid()
+    os.kill(pid, signal.SIGTERM)
 
-def readFile():
-    while True:  # keep reading new lines appended
-        line = sys.stdin.readline()
-        accept_match = re.search("Accepted password for (.+) from ((\d+\.{1,3}){3}\d{1,3})", line)
-        if accept_match is not None:
-            user = accept_match.group(1)
-            ip = accept_match.group(2)
-            # a user might have multiple connections
-            if user not in waiting_sessions:
-                waiting_sessions[user] = [ip]
-            else:
-                waiting_sessions[user].append(ip)
-        session_match = re.search("New session (\d{1,}) of user (.+)\.", line)
-        if session_match is not None:
-            sess_num = session_match.group(1)
-            user = session_match.group(2)
-            ip = waiting_sessions[user].pop()
-            if len(waiting_sessions[user]) == 0:
-                waiting_sessions.pop(user)
-            active_sessions[sess_num] = ip
-            if ip not in location_dict:  # location not fetched yet for that ip
-                if ip in ip_query_dict:  # increase connection count from ip
-                    ip_query_dict[ip] += 1
+def get_location_data():
+    # global is_running
+    # print("Starting fetch thread...")
+    while is_running:
+        sleep(1)
+        if len(ip_set) == 0:
+            continue
+        res = fetch_loc_data(ip_set)
+        if res.status_code == 200:
+            store_loc_data(res, location_data)
+        else:
+            print("ERROR: "+str(res.status_code))
+            print(res.text)
+    # print("Stopping fetch thread...")
+
+def get_session_data():
+    # global is_running
+    # print("Starting reader thread...")
+    while is_running:
+        line = sys.stdin.readline()[:-1]
+        # if line.startswith("exit"):
+        #     print("Exiting")
+        #     is_running = False
+        #     continue
+        if line.startswith("NEW_SESSION"):
+            sessions_lock.acquire()
+            new_s = line.split("\t")[1:]
+            for s in new_s:
+                pid, user, term, ip = s.split()
+                if ip not in sessions:
+                    sessions[ip] = {(pid, user, term)}
                 else:
-                    ip_query_dict[ip] = 1
-                #print("Increasing count of ip_query_dict to " + str(ip_query_dict[ip]))
-            else:
-                location_dict[ip][0] += 1  # increase connection count from ip
-                #print("Increasing count of location_dict to " + str(location_dict[ip][0]))
-            print(ip+" was assigned session "+sess_num)
-        disco_match = re.search("Removed session (\d{1,})\.", line)
-        if disco_match is not None:
-            sess_num = disco_match.group(1)
-            ip = active_sessions.pop(sess_num)
-            print(ip+" disconnected from session "+sess_num)
-            if ip in ip_query_dict:
-                ip_query_dict[ip] -= 1
-                #print("Decreasing count of ip_query_dict to " + str(ip_query_dict[ip]))
-                if ip_query_dict[ip] == 0:  # only connection from that IP
-                    ip_query_dict.pop(ip)
-            if ip in location_dict:
-                location_dict[ip][0] -= 1
-                #print("Decreasing count of location_dict to " + str(location_dict[ip][0]))
-                if location_dict[ip][0] == 0:  # only connection from that IP
-                    location_dict.pop(ip)
-            print("Active sessions: "+str(active_sessions))
+                    sessions[ip].add((pid, user, term))
+            sessions_lock.release()
+        elif line.startswith("REMOVED_SESSION"):
+            sessions_lock.acquire()
+            rem_s = line.split("\t")[1:]
+            for s in rem_s:
+                pid, user, term, ip = s.split()
+                sessions[ip].remove((pid, user, term))
+                if len(sessions[ip]) == 0:
+                    sessions.pop(ip)
+            sessions_lock.release()
+        elif line.startswith("NEW_IPS"):
+            ip_lock.acquire()
+            new_ips = line.split("\t")[1:]
+            for ip in new_ips:
+                ip_set.add(ip)
+            ip_lock.release()
+        elif line.startswith("REMOVED_IPS"):
+            ip_lock.acquire()
+            rem_ips = line.split("\t")[1:]
+            for ip in rem_ips:
+                if ip in ip_set:
+                    ip_set.remove(ip)
+            ip_lock.release()
+    # print("Stopping reader thread...")
+
