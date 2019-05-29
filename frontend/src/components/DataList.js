@@ -28,3 +28,29 @@ export default class DataList extends React.Component {
     )
   }
 }
+/*
+[
+    {
+        "country": "Italy",
+        "city": "Busto Arsizio",
+        "ip": "130.25.193.243",
+        "terminals": [
+            [
+                "5136",
+                "lee",
+                "pts"
+            ],
+            [
+                "5855",
+                "lee",
+                "notty"
+            ]
+        ],
+        "cartesian": [
+            38.015776875757425,
+            5.918516250776332,
+            39.30358601860552
+        ]
+    }
+]
+ */

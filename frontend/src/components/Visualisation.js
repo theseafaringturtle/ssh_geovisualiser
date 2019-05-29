@@ -4,6 +4,7 @@ import '../App.css';
 import GlobeScene from "./3D/GlobeScene";
 import DataList from "./DataList";
 import BabylonScene from './SceneComponent';
+import swal from 'sweetalert'
 import {Container, Row, Col} from "reactstrap"
 
 
@@ -23,11 +24,18 @@ export default class Visualisation extends React.Component {
         return resp.json();
       }
     ).then(jsonRes => {
+      if(jsonRes.error){
+        swal("Error", jsonRes.error,"error")
+        console.log(jsonRes.error)
+        return;
+      }
       console.log(jsonRes);
       this.scene.displayData(jsonRes);
       this.dataListRef.current.setState({data: jsonRes});
       // this.setCameraTarget(0);
-    }).catch(error => console.error(error));
+    }).catch(error => {
+      console.error(error)
+    });
   };
 
   setCameraTarget = (index) => {
