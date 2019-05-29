@@ -2,9 +2,9 @@ import threading
 from ipaddress import ip_address, ip_network
 from aiohttp import web
 from data import sessions, sessions_lock, location_data, location_lock
-from reader import get_location_data, get_session_data, stop_threads
-from threading import Thread
-#CLIENT_URL = sys.argv[1]
+import sys
+
+CLIENT_URL = sys.argv[1]
 
 subnet_whitelist = [ip_network(net) for net in [
     "192.168.0.0/16"
@@ -29,7 +29,9 @@ routes = web.RouteTableDef()
 async def get_data(request):
     host = ip_address(request.remote)
     if not check_whitelist(host):
-        return web.json_response("Your host is not whitelisted", status=401)
+        return web.json_response({"error": "Your host is not whitelisted"},
+                                 status=401,
+                                 headers={"Access-Control-Allow-Origin": CLIENT_URL})
     radius = 55.0
     if "radius" in request.rel_url.query:
         radius = float(request.rel_url.query["radius"])
@@ -47,8 +49,7 @@ async def get_data(request):
         resp_arr.append(resp_obj)
     sessions_lock.release()
     location_lock.release()
-    headers = {}
-    #headers = {"Access-Control-Allow-Origin": CLIENT_URL}
+    headers = {"Access-Control-Allow-Origin": CLIENT_URL}
     return web.json_response(resp_arr, headers=headers)
 
 app = web.Application()
@@ -56,4 +57,5 @@ app.add_routes(routes)
 
 
 def run_server():
+    print(CLIENT_URL)
     web.run_app(app)
