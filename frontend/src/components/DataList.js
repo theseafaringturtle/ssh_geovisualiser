@@ -5,6 +5,7 @@ export default class DataList extends React.Component {
 
   state = {
     data: [],
+    server : null,
   };
 
   render() {

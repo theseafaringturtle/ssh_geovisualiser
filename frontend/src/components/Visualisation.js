@@ -4,7 +4,7 @@ import '../App.css';
 import GlobeScene from "./3D/GlobeScene";
 import DataList from "./DataList";
 import BabylonScene from './SceneComponent';
-import {Container, Row, Col} from "reactstrap"
+import swal from 'sweetalert'
 
 
 export default class Visualisation extends React.Component {
@@ -13,21 +13,47 @@ export default class Visualisation extends React.Component {
     super(props);
     this.scene = new GlobeScene();
     this.dataListRef = React.createRef();
+    this.fetchServer();
     this.fetchData();
     setInterval(this.fetchData, UPDATE_TIME);
   }
 
+  fetchServer = () => {
+    fetch(`${BACKEND_URL}/server?radius=` + (EARTH_RADIUS)).then(resp => {
+        return testSv;//todo test
+      }
+    ).then(jsonRes => {
+      if(jsonRes.error){
+        swal("Error", jsonRes.error, "error");
+        console.log(jsonRes.error);
+        return;
+      }
+      console.log(jsonRes);
+      this.scene.displayServer(jsonRes);
+      this.dataListRef.current.setState({server: jsonRes});
+      // this.setCameraTarget(0);
+    }).catch(error => {
+      console.error(error)
+    });
+  };
 
   fetchData = () => {
     fetch(`${BACKEND_URL}/data?radius=` + (EARTH_RADIUS)).then(resp => {
-        return resp.json();
+        return testArr;//todo test
       }
     ).then(jsonRes => {
-      console.log(jsonRes);
-      this.scene.displayData(jsonRes);
+      if(jsonRes.error){
+        swal("Error", jsonRes.error, "error");
+        console.log(jsonRes.error);
+        return;
+      }
+      // console.log(jsonRes);
+      let result = this.scene.displayData(jsonRes);
+      //todo switch to sockets
       this.dataListRef.current.setState({data: jsonRes});
-      // this.setCameraTarget(0);
-    }).catch(error => console.error(error));
+    }).catch(error => {
+      console.error(error)
+    });
   };
 
   setCameraTarget = (index) => {
@@ -38,12 +64,6 @@ export default class Visualisation extends React.Component {
   render() {
     return (
     <div style={{verticalAlign: "top"}}>
-      {/*<Container style={{width: "100vw", height: "100vh"}}>*/}
-      {/*<Row xs={12}>*/}
-      {/*<Col xs={6}>*/}
-      {/*<div style={{backgroundColor : "red", height: "100vh"}}/>*/}
-      {/*</Col>*/}
-      {/*</Row>*/}
       <div id="globeContainer">
         <BabylonScene onSceneMount={this.scene.onSceneMount} />
     </div>

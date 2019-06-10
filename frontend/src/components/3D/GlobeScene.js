@@ -1,19 +1,22 @@
 import * as BABYLON from "@babylonjs/core";
 import {AdvancedDynamicTexture, Button} from "@babylonjs/gui/index";
 import {createBorders, createEarth, createFire} from './SceneObjects'
-import {UPDATE_TIME} from "../../config";
+import {EARTH_RADIUS, UPDATE_TIME} from "../../config";
 
 export default class GlobeScene {
 
-  constructor(){
+  constructor() {
     this.scene = null;
     this.flares = [];
+    this.host = null;
   }
-  isLargeScreen(){
+
+  isLargeScreen() {
     return window.innerWidth > 900;
   }
-  setCameraTarget(index){
-    if(this.scene) {
+
+  setCameraTarget(index) {
+    if (this.scene) {
       this.flares[index].showInfo();
       //no need to subtract the earth's position since it is at the origin
       this.scene.targetCameraPosition = this.flares[index].position.scale(1);
@@ -82,53 +85,78 @@ export default class GlobeScene {
 
     this.scene = scene;
     engine.runRenderLoop(() => {
-      if(!document.hasFocus)
+      if (!document.hasFocus)
         return;
       const currentTime = new Date().getTime();
       this.flares.forEach(flare => {
         if (flare.TTL < currentTime) {
           flare.dispose();
+          if (flare.line)
+            flare.line.dispose();
           if (flare.hovering)
             this.info.isVisible = false;
         }
       });
-      this.flares = this.flares.filter(flare => {return !flare.isDisposed()});
+      this.flares = this.flares.filter(flare => {
+        return !flare.isDisposed()
+      });
       if (scene) {
         scene.render();
       }
     });
   };
 
-  displayData = (jsonRes) => {
-    jsonRes.forEach(jsonObj => {
-      let position =  new BABYLON.Vector3(jsonObj.cartesian[0],
+  displayServer = (serverObj) => {
+    let position = new BABYLON.Vector3(serverObj.cartesian[0],
+      serverObj.cartesian[2], serverObj.cartesian[1]);
+    //todo pc mesh
+    this.host = createFire(position, this.scene);
+    this.host.showInfo = () => {
+      this.info.isVisible = 1;
+      this.info.linkWithMesh(this.host);
+      this.info.textBlock.text = `${serverObj.ip}\nSERVER`;
+    };
+    this.setActions(this.host);
+  };
+
+  displayData = (jsonArr) => {
+    if(!this.host)
+      return false;
+    jsonArr.forEach(jsonObj => {
+      let position = new BABYLON.Vector3(jsonObj.cartesian[0],
         jsonObj.cartesian[2], jsonObj.cartesian[1]);
       // debugger;
       let flare = createFire(position, this.scene);
       flare.TTL = new Date().getTime() + UPDATE_TIME + 1000;
       this.flares.push(flare);
-      flare.hovering = false;
-      flare.actionManager = new BABYLON.ActionManager(this.scene);
       flare.showInfo = () => {
         this.info.isVisible = 1;
         this.info.linkWithMesh(flare);
         this.info.textBlock.text = `${jsonObj.ip}\n${jsonObj.city}\n${jsonObj.country}`;
       };
-      flare.actionManager.registerAction(
-        new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, (ev) => {
-          flare.hovering = true;
-          flare.showInfo();
-        }));
-      flare.actionManager.registerAction(
-        new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (ev) => {
-          flare.showInfo();
-        }));
-      flare.actionManager.registerAction(
-        new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger, (ev) => {
-          flare.hovering = false;
-          this.info.isVisible = false;
-        }));
+      this.setActions(flare);
+      console.log("Getting curve for "+jsonObj.city)
+      flare.line = getCurveBetweenPoints(this.host.position.scale(1.01), flare.position.scale(1.01), this.scene);
+      return true;
     });
+  };
+  setActions = flare => {
+    flare.hovering = false;
+    flare.actionManager = new BABYLON.ActionManager(this.scene);
+    flare.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, (ev) => {
+        flare.hovering = true;
+        flare.showInfo();
+      }));
+    flare.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (ev) => {
+        flare.showInfo();
+      }));
+    flare.actionManager.registerAction(
+      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger, (ev) => {
+        flare.hovering = false;
+        this.info.isVisible = false;
+      }));
   }
 }
 
@@ -138,7 +166,7 @@ function animateCameraToTarget(scene) {
   if (scene.targetCameraPosition && scene.activeCamera) {
     let direction = scene.targetCameraPosition.subtract(scene.activeCamera.position);
     // let distance = direction.length();
-    let angle =BABYLON.Vector3.GetAngleBetweenVectors(scene.targetCameraPosition, scene.activeCamera.position, BABYLON.Vector3.Zero());
+    let angle = BABYLON.Vector3.GetAngleBetweenVectors(scene.targetCameraPosition, scene.activeCamera.position, BABYLON.Vector3.Zero());
     if (Math.abs(angle) > 0.1) {
       // set new camera - move camera in small steps based on the direction vector
       scene.activeCamera.setPosition(scene.activeCamera.position.add(direction.normalize().scale(2)));
@@ -148,4 +176,53 @@ function animateCameraToTarget(scene) {
       scene.targetCameraPosition = null;
     }
   }
+}
+
+// assumes that the vectors start from the origin, which is the center of the sphere
+function getCurveBetweenPoints(point1, point2, scene){
+
+  let origin = BABYLON.Vector3.Zero();
+  let derp = BABYLON;
+  ////DEBUG
+  // let l1 = BABYLON.Mesh.CreateLines("l1", [origin, point1], scene);
+  // l1.color = new BABYLON.Color3(1, 1, 0.5);
+  // let l2 = BABYLON.Mesh.CreateLines("l2", [origin, point2], scene);
+  // l2.color = new BABYLON.Color3(1, 0, 0.5);
+  ////
+  let controlPoint1;
+  let controlPoint2;
+  let numPoints;
+
+  let angle = Math.abs(BABYLON.Vector3.GetAngleBetweenVectors(
+    point1, point2, BABYLON.Vector3.Zero()));
+  if(angle < Math.PI / 4){
+    controlPoint1 = point1.scale(1.1);
+    controlPoint2 = point2.scale(1.1);
+    numPoints = 15;
+  }
+  else {
+    let angleRatio = Math.min(angle / Math.PI, 0.75);
+    let distance = BABYLON.Vector3.Distance(point1, point2);
+    let len = angleRatio * distance;//
+    console.log(len)
+    // len = Math.max(Math.min(EARTH_RADIUS, len), 1);
+    let perpendicularToBoth = BABYLON.Vector3.Cross(point1, point2).normalize().scale(len);
+    //debugger;
+    let tangent1 = BABYLON.Vector3.Cross(perpendicularToBoth, point1).normalize().scale(len);
+    controlPoint1 = tangent1.add(point1);
+    let tangent2 = BABYLON.Vector3.Cross(point2, perpendicularToBoth).normalize().scale(len);
+    controlPoint2 = tangent2.add(point2);
+    numPoints = 25;
+    ///DEBUG
+    // let p1 = BABYLON.Mesh.CreateLines("perp", [point1, perpendicularToBoth.add(point1)], scene);
+    // p1.color = new BABYLON.Color3(1, 0.5, 0.8)
+    // BABYLON.Mesh.CreateLines("tangent1", [point1, tangent1.add(point1)], scene)
+    // BABYLON.Mesh.CreateLines("control1", [point2, perpendicularToBoth.add(point2)], scene).color = new BABYLON.Color3(1, 0.5, 0.8);;
+    // BABYLON.Mesh.CreateLines("tngent2", [point2,tangent2.add(point2)], scene).color = BABYLON.Color3.Red();
+  }
+
+  let curve = new BABYLON.Curve3.CreateCubicBezier(point1,controlPoint1, controlPoint2, point2, numPoints);
+  let curveMesh = BABYLON.Mesh.CreateLines("curve", curve.getPoints(),scene);
+  curveMesh.color = new BABYLON.Color3(0.5, 0.8, 0.9);
+  return curveMesh;
 }
