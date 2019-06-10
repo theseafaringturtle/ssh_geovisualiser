@@ -23,6 +23,9 @@ def get_ssh_changes(prev_active_sessions, prev_active_ips):
         terminals[pid] = term
         pid_list.append(pid)
     pid_string = ",".join(pid_list)
+    # no connections?
+    if len(pid_string) == 0:
+        return set(), set(), None
     # list ssh connections and match the IPs to the processes
     cmd = "lsof -nai -p "+pid_string
     out = subprocess.check_output(cmd, shell=True)

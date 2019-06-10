@@ -19,7 +19,8 @@ def update_data():
     while is_running:
         time.sleep(1)
         active_sessions, active_ips, delta = get_ssh_changes(active_sessions, active_ips)
-        send_data(delta)
+        if delta is not None:
+            send_data(delta)
 
 
 def send_data(delta):
