@@ -17,7 +17,9 @@ export default class GlobeScene {
 
   setCameraTarget(index) {
     if (this.scene) {
-      this.flares[index].showInfo();
+      if(this.flares[index]) {
+        this.flares[index].showInfo();
+      }
       //no need to subtract the earth's position since it is at the origin
       this.scene.targetCameraPosition = this.flares[index].position.scale(1);
     }
@@ -73,13 +75,14 @@ export default class GlobeScene {
     advancedTexture.addControl(this.info);
 
     scene.targetCameraPosition = null;
+    let infoButton = this.info;
     scene.registerBeforeRender(function () {
-      animateCameraToTarget(scene);
+      animateCameraToTarget(scene, infoButton);
     });
 
     borderSphere.actionManager = new BABYLON.ActionManager(scene);
     borderSphere.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (ev) => {
+      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, (ev) => {
         this.info.isVisible = false;
       }));
 
@@ -112,7 +115,7 @@ export default class GlobeScene {
     //todo pc mesh
     this.host = createFire(position, this.scene);
     this.host.showInfo = () => {
-      this.info.isVisible = 1;
+      this.info.isVisible = false;
       this.info.linkWithMesh(this.host);
       this.info.textBlock.text = `${serverObj.ip}\nSERVER`;
     };
@@ -130,7 +133,7 @@ export default class GlobeScene {
       flare.TTL = new Date().getTime() + UPDATE_TIME + 1000;
       this.flares.push(flare);
       flare.showInfo = () => {
-        this.info.isVisible = 1;
+        this.info.isVisible = false;
         this.info.linkWithMesh(flare);
         this.info.textBlock.text = `${jsonObj.ip}\n${jsonObj.city}\n${jsonObj.country}`;
       };
@@ -162,18 +165,21 @@ export default class GlobeScene {
 
 // adapted from http://www.html5gamedevs.com/topic/19683-convert-position-to-alpha-beta-for-arcrotatecamera/
 // now radius independent
-function animateCameraToTarget(scene) {
+function animateCameraToTarget(scene, infoButton) {
   if (scene.targetCameraPosition && scene.activeCamera) {
     let direction = scene.targetCameraPosition.subtract(scene.activeCamera.position);
     // let distance = direction.length();
     let angle = BABYLON.Vector3.GetAngleBetweenVectors(scene.targetCameraPosition, scene.activeCamera.position, BABYLON.Vector3.Zero());
+    console.log(angle)
     if (Math.abs(angle) > 0.1) {
       // set new camera - move camera in small steps based on the direction vector
-      scene.activeCamera.setPosition(scene.activeCamera.position.add(direction.normalize().scale(2)));
+      scene.activeCamera.setPosition(scene.activeCamera.position.add(direction.normalize().scale(8)));
       // scene.activeCamera.radius = 100;
     } else {
       // target position reached
       scene.targetCameraPosition = null;
+      // fix for buttons in wrong position: show them only at the end of the transition
+      infoButton.isVisible = true;
     }
   }
 }

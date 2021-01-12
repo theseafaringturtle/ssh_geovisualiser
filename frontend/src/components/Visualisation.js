@@ -5,7 +5,6 @@ import GlobeScene from "./3D/GlobeScene";
 import DataList from "./DataList";
 import BabylonScene from './SceneComponent';
 import swal from 'sweetalert'
-import {Container, Row, Col} from "reactstrap"
 
 
 export default class Visualisation extends React.Component {
@@ -65,12 +64,6 @@ export default class Visualisation extends React.Component {
   render() {
     return (
     <div style={{verticalAlign: "top"}}>
-      {/*<Container style={{width: "100vw", height: "100vh"}}>*/}
-      {/*<Row xs={12}>*/}
-      {/*<Col xs={6}>*/}
-      {/*<div style={{backgroundColor : "red", height: "100vh"}}/>*/}
-      {/*</Col>*/}
-      {/*</Row>*/}
       <div id="globeContainer">
         <BabylonScene onSceneMount={this.scene.onSceneMount} />
     </div>
