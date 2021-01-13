@@ -16,10 +16,8 @@ export default class GlobeScene {
   }
 
   setCameraTarget(index) {
-    if (this.scene) {
-      if(this.flares[index]) {
-        this.flares[index].showInfo();
-      }
+    if (this.scene && this.flares[index]) {
+      this.flares[index].showInfo();
       //no need to subtract the earth's position since it is at the origin
       this.scene.targetCameraPosition = this.flares[index].position.scale(1);
     }
@@ -133,7 +131,8 @@ export default class GlobeScene {
       flare.TTL = new Date().getTime() + UPDATE_TIME + 1000;
       this.flares.push(flare);
       flare.showInfo = () => {
-        this.info.isVisible = false;
+        // show it right away only on mouse hover
+        this.info.isVisible = flare.hovering
         this.info.linkWithMesh(flare);
         this.info.textBlock.text = `${jsonObj.ip}\n${jsonObj.city}\n${jsonObj.country}`;
       };
@@ -170,7 +169,7 @@ function animateCameraToTarget(scene, infoButton) {
     let direction = scene.targetCameraPosition.subtract(scene.activeCamera.position);
     // let distance = direction.length();
     let angle = BABYLON.Vector3.GetAngleBetweenVectors(scene.targetCameraPosition, scene.activeCamera.position, BABYLON.Vector3.Zero());
-    console.log(angle)
+    // console.log(angle)
     if (Math.abs(angle) > 0.1) {
       // set new camera - move camera in small steps based on the direction vector
       scene.activeCamera.setPosition(scene.activeCamera.position.add(direction.normalize().scale(8)));
@@ -179,7 +178,8 @@ function animateCameraToTarget(scene, infoButton) {
       // target position reached
       scene.targetCameraPosition = null;
       // fix for buttons in wrong position: show them only at the end of the transition
-      infoButton.isVisible = true;
+      if(!infoButton.isVisible)
+        infoButton.isVisible = true;
     }
   }
 }
